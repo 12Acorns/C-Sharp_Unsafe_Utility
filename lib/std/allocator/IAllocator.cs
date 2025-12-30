@@ -2,11 +2,16 @@
 
 namespace CSPP.lib.std.allocator;
 
-internal interface IAllocator
+internal interface IAllocator<TAllocResult> where TAllocResult : IAllocReturn
 {
-	public IAllocReturn Allocate<T>(int length) where T : unmanaged;
-}
-internal interface IAllocReturn
-{
-	public meta_pointer Pointer { get; }
+	public TAllocResult Allocate<T>(int length) where T : unmanaged;
+	public virtual void Free<T>(meta_pointer<T> ptr) where T : unmanaged => Free((meta_pointer)ptr);
+	public virtual void Free(meta_pointer ptr)
+	{
+		if(!ptr.IsNative)
+		{
+			return;
+		}
+		free(ptr.Pointer);
+	}
 }

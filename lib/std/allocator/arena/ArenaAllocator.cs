@@ -5,7 +5,7 @@ using CSPP.lib.std.ptr;
 namespace CSPP.lib.std.allocator.arena;
 
 [StructLayout(LayoutKind.Explicit)]
-internal unsafe struct ArenaAllocator : IAllocator, IDisposable
+internal unsafe struct ArenaAllocator : IAllocator<ArenaReference>, IDisposable
 {
 	private static readonly int _size = sizeof(ArenaAllocator);
 
@@ -20,7 +20,8 @@ internal unsafe struct ArenaAllocator : IAllocator, IDisposable
 
 	public readonly ulong AvailableBytes => (ulong)(_lengthInBytes - (_currentOffset - _start));
 
-	public IAllocReturn Allocate<T>(int length) where T : unmanaged
+	/// <returns><see cref="ArenaReference{T}"/></returns>
+	public ArenaReference Allocate<T>(int length) where T : unmanaged
 	{
 		nint need;
 		try
@@ -32,24 +33,18 @@ internal unsafe struct ArenaAllocator : IAllocator, IDisposable
 		}
 		catch(OverflowException)
 		{
-			return default(ArenaReference<T>);
+			return default;
 		}
 
 		var used = _currentOffset - _start;
 		if(used + need > _lengthInBytes || length <= 0)
 		{
-			return default(ArenaReference<T>);
+			return default;
 		}
-		var reference = new ArenaReference<T>(_start, _currentOffset, length);
+		var reference = new ArenaReference(_start, _currentOffset, length, sizeof(T));
 		_currentOffset += length * sizeof(T);
 		return reference;
 	}
-
-	//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	//public ref IAllocator AsAllocator()
-	//{
-	//	return ref this;
-	//}
 
 	public readonly void Dispose()
 	{

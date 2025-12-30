@@ -2,7 +2,7 @@
 
 namespace CSPP.lib.std.ptr;
 
-internal unsafe struct meta_pointer
+public unsafe struct meta_pointer
 {
 	public meta_pointer(void* pointer, bool isNative = false)
 	{
@@ -14,9 +14,14 @@ internal unsafe struct meta_pointer
 		Pointer = pointer;
 		IsNative = isNative;
 	}
+	public meta_pointer()
+	{
+		Pointer = NULLPTR;
+		IsNative = false;
+	}
 
-	public bool IsNative;
-	public nint Pointer;
+	public bool IsNative { get; set; }
+	public nint Pointer { get; set; }
 
 	public static bool operator ==(meta_pointer left, meta_pointer right) => left.Pointer == right.Pointer;
 	public static bool operator !=(meta_pointer left, meta_pointer right) => left.Pointer != right.Pointer;
@@ -38,16 +43,22 @@ internal unsafe struct meta_pointer
 	}
 	public readonly override int GetHashCode() => (int)Pointer;
 }
-internal unsafe struct meta_pointer<TPtr> where TPtr : unmanaged
+public unsafe struct meta_pointer<TPtr> : IDisposable
+	where TPtr : unmanaged
 {
 	public meta_pointer(TPtr* pointer, bool isNative = false)
 	{
 		Pointer = pointer;
 		IsNative = isNative;
 	}
+	public meta_pointer()
+	{
+		Pointer = null;
+		IsNative = false;
+	}
 
-	public bool IsNative;
-	public TPtr* Pointer;
+	public bool IsNative { get; set; }
+	public TPtr* Pointer { get; set; }
 
 	public static bool operator ==(meta_pointer<TPtr> left, meta_pointer<TPtr> right) => left.Pointer == right.Pointer;
 	public static bool operator !=(meta_pointer<TPtr> left, meta_pointer<TPtr> right) => left.Pointer != right.Pointer;
@@ -65,7 +76,6 @@ internal unsafe struct meta_pointer<TPtr> where TPtr : unmanaged
 	public static implicit operator meta_pointer<TPtr>(TPtr* pointer) => new(pointer);
 	public static implicit operator TPtr*(meta_pointer<TPtr> pointer) => pointer.Pointer;
 
-
 	public readonly override bool Equals([NotNullWhen(true)] object? obj)
 	{
 		if(obj is null || obj is not meta_pointer<TPtr> other)
@@ -75,4 +85,17 @@ internal unsafe struct meta_pointer<TPtr> where TPtr : unmanaged
 		return this == other;
 	}
 	public readonly override int GetHashCode() => (int)Pointer;
+
+	public readonly void Dispose()
+	{
+		if(Pointer != NULL && *Pointer is IDisposable dispose)
+		{
+			dispose.Dispose();
+		}
+		if(!IsNative)
+		{
+			return;
+		}
+		free(Pointer);
+	}
 }
